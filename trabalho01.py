@@ -1,12 +1,13 @@
 import io
 import os
 from sys import argv
+from struct import pack, unpack, calcsize
 
 GAMES_FILE = "games.dat"
 HEADER_SIZE = 2
 DELETION_MARK = "*"
 PRIMARY_IND = "primario.ind"
-
+HEADER_FORMAT = "h"
 def main() -> None:
     print(salva_indice_primario(PRIMARY_IND))
    # print("Uso do programa:\n")
@@ -65,7 +66,7 @@ def le_registro(arquivo: io.TextIOWrapper, offset: int)-> tuple[Jogo | None, int
             if len(header) < HEADER_SIZE:
                 return None, 0
             
-            tamanho = int.from_bytes(header, 'little')
+            tamanho = pack(HEADER_FORMAT, header)
             conteudo_bytes = arquivo.read(tamanho)
             if len(conteudo_bytes) < tamanho:
                 return None, 0
