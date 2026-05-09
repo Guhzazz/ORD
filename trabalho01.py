@@ -122,10 +122,27 @@ def carrega_indice_primario()-> IndicePrimario:
     with open(PRIMARY_IND, "r") as arq:
         for linha in arq:
             linha = linha.strip()
-            partes = linha.split(sep="|")
-        indice.append({"id": int(partes[0]), "offset": int(partes[1])})
+            partes = linha.split("|")
+            indice.append({"id": int(partes[0]), "offset": int(partes[1])})
     return indice
 
+
+def salva_indice_secundario(indice: IndiceSecundario, caminho: str)-> None:
+    "Persiste um índice secundário(genêro ou publicadora)"
+    with open(caminho, "w") as arq:
+        for entrada in indice:
+            arq.write(f"{entrada['chave']}|{entrada['pos']}\n")
+
+
+def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
+    "Lê um arquivo de índice secundario e reconstrói a lista na memória"
+    indice: IndiceSecundario = []
+    with open(caminho, "r") as arq:
+        for linha in arq:
+            linha = linha.strip()
+            partes = linha.split("|", 1)
+            indice.append({"chave": partes[0], "pos": int(partes[1])})
+    return indice
 
 
 
