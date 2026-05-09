@@ -8,6 +8,7 @@ HEADER_SIZE = 2
 DELETION_MARK = "*"
 PRIMARY_IND = "primario.ind"
 HEADER_FORMAT = "h"
+
 def main() -> None:
     print(salva_indice_primario(PRIMARY_IND))
    # print("Uso do programa:\n")
@@ -94,7 +95,7 @@ def le_registro(arquivo: io.TextIOWrapper, offset: int)-> tuple[Jogo | None, int
 
 
 def percorre_registros(arquivo: io.TextIOWrapper)-> list[tuple[Jogo, int]]:
-    '''Percorre o arquivo do ínicio ao fim, pulando arquivos removidos'''
+    '''Percorre o arquivo do ínicio ao fim, pulando arquivos logicamente removidos'''
     resultado = []
     offset = 0
     tamanho_arquivo = os.path.getsize(GAMES_FILE)
@@ -116,10 +117,14 @@ def salva_indice_primario(indice: IndicePrimario)-> None:
 
 
 def carrega_indice_primario()-> IndicePrimario:
-    '''Lê primario.ind e reconstrói a lista na memória'''
-    with open(PRIMARY_IND, 'r') as arq:
-        pass
-
+    '''Lê  o arquivo primario.ind e reconstrói a lista indice_primario na memória'''
+    indice: IndicePrimario = []
+    with open(PRIMARY_IND, "r") as arq:
+        for linha in arq:
+            linha = linha.strip()
+            partes = linha.split(sep="|")
+        indice.append({"id": int(partes[0]), "offset": int(partes[1])})
+    return indice
 
 
 
