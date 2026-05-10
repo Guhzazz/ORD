@@ -7,7 +7,10 @@ GAMES_FILE = "games.dat"
 HEADER_SIZE = 2
 DELETION_MARK = "*"
 PRIMARY_IND = "primario.ind"
+GENRE_IND = "genero.ind"
+PUBLISHER_IND = "publicadora.ind"
 HEADER_FORMAT = "h"
+INV_LIST_FILE = "listaInvertida.lst"
 
 def main() -> None:
     print(salva_indice_primario(PRIMARY_IND))
@@ -144,6 +147,24 @@ def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
             indice.append({"chave": partes[0], "pos": int(partes[1])})
     return indice
 
+
+def salva_lista_invertida(lista: ListaInvertida)-> None:
+    '''Persiste a lista invertida em listaInvertida.lst. O índice de cada elemento
+    na lista é a sua posição lógica'''
+    with open(INV_LIST_FILE, "w") as arq:
+        for no in lista:
+            arq.write(f"{no['id']}|{no['prox']}\n")
+
+
+def carrega_lista_invertida()-> ListaInvertida:
+    "Lê o arquivo listaInvertida.lst e reconstrói a lista na memória"
+    lista: ListaInvertida =[]
+    with open(INV_LIST_FILE, "r") as arq:
+        for linha in arq:
+            linha = linha.strip()
+            partes = linha.split("|")
+            lista.append({"id": int(partes[0]), "prox": int(partes[1])})
+    return lista
 
 
 def constroe_indice():
