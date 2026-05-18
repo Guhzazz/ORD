@@ -2,6 +2,7 @@ import io
 import os
 from sys import argv
 from struct import pack, unpack, calcsize
+from dataclasses import dataclass
 
 GAMES_FILE = "games.dat"
 HEADER_SIZE = 2
@@ -13,23 +14,26 @@ HEADER_FORMAT = "h"
 INV_LIST_FILE = "listaInvertida.lst"
 
 def main() -> None:
-    print(salva_indice_primario(PRIMARY_IND))
-   # print("Uso do programa:\n")
-    '''try:
-        flag = argv[1]
-        if flag == "-b":
-            pass
-        elif flag == "-e":
-            if len(argv) < 3:
-                print("Erro: Informe também o arquivo de operações")
-                pass
-        elif flag == "-c":
-            pass
-        else:
-            print(f"Flag não identificada: {flag}")
-    except Exception as e:
-        print("Erro")
-'''
+    print("Uso do programa:\n" \
+    "python programa.py -flag\n" \
+    "Flags disponíveis: -b(construir), -e(arq operações), -c(compactar)")
+    if len(argv) < 2:
+        raise TypeError("Número incorreto de argumentos\n")
+
+    flag = argv[1]
+    if flag == "-b":
+        constroe_indice()
+    elif flag == "-e":
+        if len(argv) < 3:
+            print("Erro: Informe também o arquivo de operações")
+            return None
+        arquivo_operacoes = argv[2]
+    elif flag == "-c":
+        pass
+    else:
+        print(f"Flag não identificada: {flag}")
+
+@dataclass
 class Jogo:
     '''Representa um jogo do arquivo games.dat'''
     id: int
@@ -40,16 +44,19 @@ class Jogo:
     plataforma: str
     raw: str
 
+@dataclass
 class EntradaPrimaria:
     '''Abriga a chave primaria do jogo e o offset do registro'''
     id: int
     offset: int
 
+@dataclass
 class EntradaSecundaria:
     '''Abriga o valor da chave secundária do jogo e a posição na lista invertida'''
     chave: str
     pos: int
 
+@dataclass
 class NoListainvertida:
     '''Representa um nó da lista invertida, com id e índice do próximo nó'''
     id: int
@@ -70,7 +77,7 @@ def le_registro(arquivo: io.TextIOWrapper, offset: int)-> tuple[Jogo | None, int
             if len(header) < HEADER_SIZE:
                 return None, 0
             
-            tamanho = pack(HEADER_FORMAT, header)
+            tamanho = unpack(HEADER_FORMAT, header)[0]
             conteudo_bytes = arquivo.read(tamanho)
             if len(conteudo_bytes) < tamanho:
                 return None, 0
@@ -83,16 +90,16 @@ def le_registro(arquivo: io.TextIOWrapper, offset: int)-> tuple[Jogo | None, int
             if len(campos) < 6:
                 return None, HEADER_SIZE + tamanho
         
-            jogo = Jogo = {
-                "id": int(campos[0]),
-                "nome": campos[1],
-                "ano": campos[2],
-                "genero": campos[3],
-                "publicadora": campos[4],
-                "plataforma": campos[5],
-                "raw": conteudo
-            }
-            return jogo, HEADER_SIZE + tamanho
+            jogo = Jogo(
+                id=int(campos[0]),
+                nome=campos[1],
+                ano=campos[2],
+                genero=campos[3],
+                publicadora=campos[4],
+                plataforma=campos[5],
+                raw=conteudo
+            )
+        return jogo, HEADER_SIZE + tamanho
     except FileNotFoundError:
         print("Erro em le_arquivo")
 
@@ -167,11 +174,32 @@ def carrega_lista_invertida()-> ListaInvertida:
     return lista
 
 
-def constroe_indice():
-    pass
+def constroe_indice()-> None:
+    '''Utiliza as funções de "salva" e "carrega" dos indices primarios, secundários
+    e a lista invertida para consttuir os indices do programa'''
+    jogos_lidos = percorre_registros(GAMES_FILE)
+    print(f"\nTotal de jogos válidos encontrados: {len(jogos_lidos)}")
+    for jogo, offset in jogos_lidos[:3]:
+        print(f"Offset: {offset} | Jogo: {jogo.id} - {jogo.nome} ({jogo.genero})")
 
-def busca():
-    pass
+    return None
+    
+#Testar melhor isso aq, ta tarde e to com preguiça
+def busca_primario(indice: IndicePrimario, id_buscado: int)-> int:
+    '''Realiza uma busca binária pelo id no índice primário(já ordenado pelo id).
+    Retorna o índice do elemento na lista ou -1 se ele não for encontrado'''
+    esq, dir = 0, (len(indice) -1)
+    while esq <= dir:
+        meio = (esq + dir) //2
+        if indice[meio]["id"] == id_buscado:
+            return meio
+        elif indice[meio]["id"] < id_buscado:
+            esq = meio + 1
+        else:
+            dir = meio - 1
+    return -1
+
+
 
 def insercao():
     pass
