@@ -183,9 +183,14 @@ def constroe_indice()-> None:
         print(f"Offset: {offset} | Jogo: {jogo.id} - {jogo.nome} ({jogo.genero})")
 
     return None
-    
-#Testar melhor isso aq, ta tarde e to com preguiça
-def busca_primario(indice: IndicePrimario, id_buscado: int)-> int:
+
+
+def formata_registro(jogo: Jogo)-> str:
+    '''Formata um jogo na representação textual exigida para a saída'''
+    return (f"{jogo['id']}|{jogo['nome']}|{jogo['ano']}|"
+            f"{jogo['genero']}|{jogo['publicadora']}|{jogo['plataforma']}|")
+
+def busca_binaria(indice: IndicePrimario, id_buscado: int)-> int:
     '''Realiza uma busca binária pelo id no índice primário(já ordenado pelo id).
     Retorna o índice do elemento na lista ou -1 se ele não for encontrado'''
     esq, dir = 0, (len(indice) -1)
@@ -199,6 +204,22 @@ def busca_primario(indice: IndicePrimario, id_buscado: int)-> int:
             dir = meio - 1
     return -1
 
+
+
+def busca_primario(indice: IndicePrimario, id_buscado: int)-> None:
+    '''Busca e imprime o registro correspondente a id_buscado usando o índice primário'''
+    print(f"Busca pelo registro de id: {id_buscado}")
+    pos = busca_binaria(indice, id_buscado)
+    if pos == -1:
+        print("Registro não encontrado.")
+    offset = indice[pos]["offset"]
+    with open(GAMES_FILE, "rb") as arq:
+        jogo, _ = le_registro(arq, offset)
+        if jogo:
+            print(formata_registro(jogo))
+        else:
+            print("Registro não encontrado.")
+        
 
 
 def insercao():
