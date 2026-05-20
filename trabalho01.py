@@ -191,7 +191,7 @@ def formata_registro(jogo: Jogo)-> str:
             f"{jogo['genero']}|{jogo['publicadora']}|{jogo['plataforma']}|")
 
 def busca_binaria(indice: IndicePrimario, id_buscado: int)-> int:
-    '''Realiza uma busca binária pelo id no índice primário(já ordenado pelo id).
+    '''Realiza uma busca binária pelo id.
     Retorna o índice do elemento na lista ou -1 se ele não for encontrado'''
     esq, dir = 0, (len(indice) -1)
     while esq <= dir:
@@ -220,6 +220,14 @@ def busca_primario(indice: IndicePrimario, id_buscado: int)-> None:
         else:
             print("Registro não encontrado.")
         
+        
+def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: str, tipo: str)->None:
+    '''Busca e imprime todos os registros associados a uma chave secundária,
+    percorrendo a lista invertida e acessando cada registro por byte-offset'''
+    if tipo == "genero":
+        print(f"Busca por registros de gênero: {chave}")
+    else:
+        print(f"Busca por registros da publicadora: {chave}")
 
 
 def insercao():
