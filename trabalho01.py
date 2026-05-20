@@ -70,35 +70,33 @@ ListaInvertida = list[NoListainvertida]
 def le_registro(arquivo: io.TextIOWrapper, offset: int)-> tuple[Jogo | None, int]:
     '''Lê um único registro do arquivo baseado no byte-offset informado'''
     try:
-        with open(arquivo, "rb") as arquivo:
-
-            arquivo.seek(offset, os.SEEK_SET)
-            header = arquivo.read(HEADER_SIZE)
-            if len(header) < HEADER_SIZE:
-                return None, 0
-            
-            tamanho = unpack(HEADER_FORMAT, header)[0]
-            conteudo_bytes = arquivo.read(tamanho)
-            if len(conteudo_bytes) < tamanho:
-                return None, 0
-            
-            conteudo = conteudo_bytes.decode()
-            if conteudo.startswith(DELETION_MARK):
-                return None, HEADER_SIZE + tamanho
-            
-            campos = conteudo.rstrip("|").split(sep="|")
-            if len(campos) < 6:
-                return None, HEADER_SIZE + tamanho
+        arquivo.seek(offset, os.SEEK_SET)
+        header = arquivo.read(HEADER_SIZE)
+        if len(header) < HEADER_SIZE:
+            return None, 0
         
-            jogo = Jogo(
-                id=int(campos[0]),
-                nome=campos[1],
-                ano=campos[2],
-                genero=campos[3],
-                publicadora=campos[4],
-                plataforma=campos[5],
-                raw=conteudo
-            )
+        tamanho = unpack(HEADER_FORMAT, header)[0]
+        conteudo_bytes = arquivo.read(tamanho)
+        if len(conteudo_bytes) < tamanho:
+            return None, 0
+        
+        conteudo = conteudo_bytes.decode()
+        if conteudo.startswith(DELETION_MARK):
+            return None, HEADER_SIZE + tamanho
+        
+        campos = conteudo.rstrip("|").split(sep="|")
+        if len(campos) < 6:
+            return None, HEADER_SIZE + tamanho
+    
+        jogo = Jogo(
+            id=int(campos[0]),
+            nome=campos[1],
+            ano=campos[2],
+            genero=campos[3],
+            publicadora=campos[4],
+            plataforma=campos[5],
+            raw=conteudo
+        )
         return jogo, HEADER_SIZE + tamanho
     except FileNotFoundError:
         print("Erro em le_arquivo")
@@ -109,13 +107,14 @@ def percorre_registros(arquivo: io.TextIOWrapper)-> list[tuple[Jogo, int]]:
     resultado = []
     offset = 0
     tamanho_arquivo = os.path.getsize(GAMES_FILE)
-    while offset < tamanho_arquivo:
-        jogo, total = le_registro(arquivo, offset)
-        if total == 0:
-            return None
-        if jogo is not None:
-            resultado.append((jogo, offset))
-        offset += total
+    with open(GAMES_FILE, "rb") as arquivo:
+        while offset < tamanho_arquivo:
+            jogo, total = le_registro(arquivo, offset)
+            if total == 0:
+                return None
+            if jogo is not None:
+                resultado.append((jogo, offset))
+            offset += total
     return resultado
 
 
@@ -133,7 +132,7 @@ def carrega_indice_primario()-> IndicePrimario:
         for linha in arq:
             linha = linha.strip()
             partes = linha.split("|")
-            indice.append({"id": int(partes[0]), "offset": int(partes[1])})
+            indice.append(EntradaPrimaria(id=int(partes[0]), offset=int(partes[1])))
     return indice
 
 
@@ -145,13 +144,13 @@ def salva_indice_secundario(indice: IndiceSecundario, caminho: str)-> None:
 
 
 def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
-    '''Lê um arquivo de índice secundario e reconstrói a lista na memória'''
+    "Lê um arquivo de índice secundario e reconstrói a lista na memória"
     indice: IndiceSecundario = []
     with open(caminho, "r") as arq:
         for linha in arq:
             linha = linha.strip()
             partes = linha.split("|", 1)
-            indice.append({"chave": partes[0], "pos": int(partes[1])})
+            indice.append(EntradaSecundaria(chave=partes[0], pos=int(partes[1])))
     return indice
 
 
@@ -170,7 +169,7 @@ def carrega_lista_invertida()-> ListaInvertida:
         for linha in arq:
             linha = linha.strip()
             partes = linha.split("|")
-            lista.append({"id": int(partes[0]), "prox": int(partes[1])})
+            lista.append(NoListainvertida(id=int(partes[0]), prox=int(partes[1])))
     return lista
 
 
@@ -187,8 +186,9 @@ def constroe_indice()-> None:
 
 def formata_registro(jogo: Jogo)-> str:
     '''Formata um jogo na representação textual exigida para a saída'''
-    return (f"{jogo['id']}|{jogo['nome']}|{jogo['ano']}|"
-            f"{jogo['genero']}|{jogo['publicadora']}|{jogo['plataforma']}|")
+    return (f"{jogo.id}|{jogo.nome}|{jogo.ano}|"
+            f"{jogo.genero}|{jogo.publicadora}|{jogo.plataforma}|")
+
 
 def busca_binaria(indice: IndicePrimario, id_buscado: int)-> int:
     '''Realiza uma busca binária pelo id.
@@ -196,15 +196,26 @@ def busca_binaria(indice: IndicePrimario, id_buscado: int)-> int:
     esq, dir = 0, (len(indice) -1)
     while esq <= dir:
         meio = (esq + dir) //2
-        if indice[meio]["id"] == id_buscado:
+        if indice[meio].id == id_buscado:
             return meio
-        elif indice[meio]["id"] < id_buscado:
+        elif indice[meio].id < id_buscado:
             esq = meio + 1
         else:
             dir = meio - 1
     return -1
 
-
+def busca_binaria_secundaria(indice: IndiceSecundario, chave_buscada: str) -> int:
+    '''Realiza uma busca binária no índice secundário pela string da chave.'''
+    esq, dir = 0, (len(indice) -1)
+    while esq <= dir:
+        meio = (esq + dir) //2
+        if indice[meio].chave == chave_buscada:
+            return meio
+        elif indice[meio].chave < chave_buscada:
+            esq = meio + 1
+        else:
+            dir = meio - 1
+    return -1
 
 def busca_primario(indice: IndicePrimario, id_buscado: int)-> None:
     '''Busca e imprime o registro correspondente a id_buscado usando o índice primário'''
@@ -212,15 +223,16 @@ def busca_primario(indice: IndicePrimario, id_buscado: int)-> None:
     pos = busca_binaria(indice, id_buscado)
     if pos == -1:
         print("Registro não encontrado.")
-    offset = indice[pos]["offset"]
-    with open(GAMES_FILE, "rb") as arq:
-        jogo, _ = le_registro(arq, offset)
-        if jogo:
-            print(formata_registro(jogo))
-        else:
-            print("Registro não encontrado.")
+    else:
+        offset = indice[pos].offset
+        with open(GAMES_FILE, "rb") as arq:
+            jogo, _ = le_registro(arq, offset)
+            if jogo:
+                print(formata_registro(jogo))
+            else:
+                print("Registro não encontrado.")
         
-        
+
 def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: str, tipo: str)->None:
     '''Busca e imprime todos os registros associados a uma chave secundária,
     percorrendo a lista invertida e acessando cada registro por byte-offset'''
@@ -228,6 +240,29 @@ def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: s
         print(f"Busca por registros de gênero: {chave}")
     else:
         print(f"Busca por registros da publicadora: {chave}")
+
+    pos_ind = busca_binaria_secundaria(indice, chave)
+    if pos_ind == -1:
+        print("Registro não encontrado.")
+    else:    
+        ids = []
+        pos = indice[pos_ind].pos
+        while pos != -1:
+            no = lst_inv[pos]
+            ids.append(no.id)
+            pos = no.prox
+        print(f"({len(ids)}) registros")
+
+        indice_primario = carrega_indice_primario()
+        with open(GAMES_FILE, "rb") as arq:
+            for id_jogo in ids:
+                pos_p = busca_binaria(indice_primario, id_jogo)
+                if pos_p != -1:
+                    jogo, _ = le_registro(arq, indice_primario[pos_p].offset)
+                    if jogo:
+                        print(formata_registro(jogo))
+
+
 
 
 def insercao():
