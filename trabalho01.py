@@ -145,7 +145,7 @@ def salva_indice_secundario(indice: IndiceSecundario, caminho: str)-> None:
 
 
 def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
-    "Lê um arquivo de índice secundario e reconstrói a lista na memória"
+    '''Lê um arquivo de índice secundario e reconstrói a lista na memória'''
     indice: IndiceSecundario = []
     with open(caminho, "r") as arq:
         for linha in arq:
