@@ -122,7 +122,7 @@ def salva_indice_primario(indice: IndicePrimario)-> None:
     '''Persiste o íncice primário em primario.ind'''
     with open(PRIMARY_IND, 'w') as arq:
         for dado in indice:
-            arq.write(f"{dado['id']} | {dado['offset']}\n")
+            arq.write(f"{dado.id} | {dado.offset}\n")
 
 
 def carrega_indice_primario()-> IndicePrimario:
@@ -132,7 +132,7 @@ def carrega_indice_primario()-> IndicePrimario:
         for linha in arq:
             linha = linha.strip()
             partes = linha.split("|")
-            indice.append(EntradaPrimaria(id=int(partes[0]), offset=int(partes[1])))
+            indice.append(EntradaPrimaria(id = int(partes[0]), offset = int(partes[1])))
     return indice
 
 
@@ -140,7 +140,7 @@ def salva_indice_secundario(indice: IndiceSecundario, caminho: str)-> None:
     "Persiste um índice secundário(genêro ou publicadora)"
     with open(caminho, "w") as arq:
         for entrada in indice:
-            arq.write(f"{entrada['chave']}|{entrada['pos']}\n")
+            arq.write(f"{entrada.chave}|{entrada.pos}\n")
 
 
 def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
@@ -150,7 +150,7 @@ def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
         for linha in arq:
             linha = linha.strip()
             partes = linha.split("|", 1)
-            indice.append(EntradaSecundaria(chave=partes[0], pos=int(partes[1])))
+            indice.append(EntradaSecundaria(chave = partes[0], pos = int(partes[1])))
     return indice
 
 
@@ -159,7 +159,7 @@ def salva_lista_invertida(lista: ListaInvertida)-> None:
     na lista é a sua posição lógica'''
     with open(INV_LIST_FILE, "w") as arq:
         for no in lista:
-            arq.write(f"{no['id']}|{no['prox']}\n")
+            arq.write(f"{no.id}|{no.prox}\n")
 
 
 def carrega_lista_invertida()-> ListaInvertida:
@@ -169,7 +169,7 @@ def carrega_lista_invertida()-> ListaInvertida:
         for linha in arq:
             linha = linha.strip()
             partes = linha.split("|")
-            lista.append(NoListainvertida(id=int(partes[0]), prox=int(partes[1])))
+            lista.append(NoListainvertida(id = int(partes[0]), prox = int(partes[1])))
     return lista
 
 
@@ -236,6 +236,7 @@ def busca_primario(indice: IndicePrimario, id_buscado: int)-> None:
 def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: str, tipo: str)->None:
     '''Busca e imprime todos os registros associados a uma chave secundária,
     percorrendo a lista invertida e acessando cada registro por byte-offset'''
+    
     if tipo == "genero":
         print(f"Busca por registros de gênero: {chave}")
     else:
@@ -265,8 +266,79 @@ def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: s
 
 
 
-def insercao():
-    pass
+
+def insercao(ind_primario: IndicePrimario, ind_genero: IndiceSecundario, ind_publicadora: IndiceSecundario, lst: ListaInvertida, linha_op: str)-> None:
+    '''Insere um registro no final de "games.dat" e atualiza os índices.
+    Rejeita a inserção se o id já existir'''
+
+    campos = linha_op.strip("|").split("|")
+
+    if len(campos) >= 6:
+        id_novo = int(campos[0])
+        nome = campos[1]
+        ano = campos[2]
+        genero = campos[3]
+        publicadora = campos[4]
+        plataforma = campos[5]
+
+        print(f"Inserção do registro de chave {id_novo}")
+
+    if busca_binaria(ind_primario, id_novo) != -1:
+        print("ID duplicado, a inserção não pode ser realizada")
+    else:
+        conteudo = f"{id_novo}|{nome}|{ano}|{genero}|{publicadora}|{plataforma}"
+        conteudo_bytes = conteudo.encode()
+        tam = len(conteudo_bytes)
+        header = pack(HEADER_FORMAT, tam)
+
+        with open(GAMES_FILE, "r+b") as arq:
+            arq.seek(0, os.SEEK_END)
+            offset = arq.tell()
+            arq.write(header + conteudo_bytes)
+            print(f"Inserido com sucesso ({HEADER_SIZE + tam} bytes)")
+
+        entrada = EntradaPrimaria(id = id_novo, offset = offset)
+        pos_insercao = 0
+        i = 0
+        while i < len(ind_primario):
+            if ind_primario[i].id < id_novo:
+                pos_insercao = i + 1
+            i += 1
+        ind_primario.insert(pos_insercao, entrada)
+
+        atualiza_secundario(ind_genero, lst, id_novo, genero)
+        atualiza_secundario(ind_publicadora, lst, id_novo, publicadora)
+
+
+def atualiza_secundario(indice: IndiceSecundario, lst: ListaInvertida, id_novo: int, chave: str)-> None:
+    '''Adiciona id_novo à cadeia de chave no índice secundário e na lista invertida
+    Se a chave ainda não existir, cria uma nova entrada no índice secundário'''
+
+    pos_ind = busca_binaria_secundaria(indice, chave)
+    pos_novo = len(lst)
+    lst.append(NoListainvertida(id = id_novo, prox = -1))
+    
+    if pos_ind == -1:
+        entrada = EntradaSecundaria(chave = chave, pos = pos_novo)
+        pos_insercao = 0
+        i = 0
+        while i < len(indice):
+            if indice[i].chave < chave:
+                pos_insercao = i + 1
+            i += 1
+        indice.insert(pos_insercao, entrada)
+    else:
+        pos = indice[pos_ind].pos
+        while lst[pos].prox != -1:
+            pos = lst[pos].prox
+        lst[pos].prox = pos_novo
+
+
+
+
+
+ 
+
 
 def remocao():
     pass
