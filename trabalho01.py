@@ -424,8 +424,6 @@ def remocao(id_remov: int,  indice_primario: IndicePrimario, ind_genero: IndiceS
 
     return None
 
-def compactacao() -> None:
-    pass
 
 def executa_operacoes(arq_operacoes: str) -> None:
     '''Executa as operações presentes no arquivo .txt de operações'''
