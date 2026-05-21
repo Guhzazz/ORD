@@ -173,7 +173,6 @@ def carrega_lista_invertida()-> ListaInvertida:
             lista.append(NoListainvertida(id=int(partes[0]), prox=int(partes[1])))
     return lista
 
-
 def constroe_indice()-> None:
     '''Utiliza as funções de "salva" e "carrega" dos indices primarios, secundários
     e a lista invertida para consttuir os indices do programa'''
