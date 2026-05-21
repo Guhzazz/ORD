@@ -1,7 +1,7 @@
 import io
 import os
 from sys import argv
-from struct import pack, unpack, calcsize
+from struct import pack, unpack
 from dataclasses import dataclass
 
 GAMES_FILE = "games.dat"
@@ -28,6 +28,7 @@ def main() -> None:
             print("Erro: Informe também o arquivo de operações")
             return None
         arquivo_operacoes = argv[2]
+        executa_operacoes(arquivo_operacoes)
     elif flag == "-c":
         pass
     else:
@@ -127,12 +128,15 @@ def salva_indice_primario(indice: IndicePrimario)-> None:
 
 def carrega_indice_primario()-> IndicePrimario:
     '''Lê  o arquivo primario.ind e reconstrói a lista indice_primario na memória'''
-    indice: IndicePrimario = []
-    with open(PRIMARY_IND, "r") as arq:
-        for linha in arq:
-            linha = linha.strip()
-            partes = linha.split("|")
-            indice.append(EntradaPrimaria(id = int(partes[0]), offset = int(partes[1])))
+    try:
+        indice: IndicePrimario = []
+        with open(PRIMARY_IND, "r") as arq:
+            for linha in arq:
+                linha = linha.strip()
+                partes = linha.split("|")
+                indice.append(EntradaPrimaria(id = int(partes[0]), offset = int(partes[1])))
+    except FileNotFoundError:
+        print("Erro, arquivo não encontrado")
     return indice
 
 
@@ -145,12 +149,15 @@ def salva_indice_secundario(indice: IndiceSecundario, caminho: str)-> None:
 
 def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
     "Lê um arquivo de índice secundario e reconstrói a lista na memória"
-    indice: IndiceSecundario = []
-    with open(caminho, "r") as arq:
-        for linha in arq:
-            linha = linha.strip()
-            partes = linha.split("|", 1)
-            indice.append(EntradaSecundaria(chave = partes[0], pos = int(partes[1])))
+    try:
+        indice: IndiceSecundario = []
+        with open(caminho, "r") as arq:
+            for linha in arq:
+                linha = linha.strip()
+                partes = linha.split("|", 1)
+                indice.append(EntradaSecundaria(chave = partes[0], pos = int(partes[1])))
+    except FileNotFoundError:
+        print("Erro, arquivo não encontrado")
     return indice
 
 
@@ -164,12 +171,15 @@ def salva_lista_invertida(lista: ListaInvertida)-> None:
 
 def carrega_lista_invertida()-> ListaInvertida:
     "Lê o arquivo listaInvertida.lst e reconstrói a lista na memória"
-    lista: ListaInvertida =[]
-    with open(INV_LIST_FILE, "r") as arq:
-        for linha in arq:
-            linha = linha.strip()
-            partes = linha.split("|")
-            lista.append(NoListainvertida(id = int(partes[0]), prox = int(partes[1])))
+    try:
+        lista: ListaInvertida =[]
+        with open(INV_LIST_FILE, "r") as arq:
+            for linha in arq:
+                linha = linha.strip()
+                partes = linha.split("|")
+                lista.append(NoListainvertida(id = int(partes[0]), prox = int(partes[1])))
+    except FileNotFoundError:
+        print("Erro, arquivo não encontrado")
     return lista
 
 
@@ -178,8 +188,15 @@ def constroe_indice()-> None:
     e a lista invertida para consttuir os indices do programa'''
     jogos_lidos = percorre_registros(GAMES_FILE)
     print(f"\nTotal de jogos válidos encontrados: {len(jogos_lidos)}")
+
+    indice_primario: IndicePrimario = []
+
     for jogo, offset in jogos_lidos[:3]:
         print(f"Offset: {offset} | Jogo: {jogo.id} - {jogo.nome} ({jogo.genero})")
+
+    for jogo, offset in jogos_lidos:
+        indice_primario.append(EntradaPrimaria(id = jogo.id, offset = offset))
+        
 
     return None
 
@@ -283,31 +300,31 @@ def insercao(ind_primario: IndicePrimario, ind_genero: IndiceSecundario, ind_pub
 
         print(f"Inserção do registro de chave {id_novo}")
 
-    if busca_binaria(ind_primario, id_novo) != -1:
-        print("ID duplicado, a inserção não pode ser realizada")
-    else:
-        conteudo = f"{id_novo}|{nome}|{ano}|{genero}|{publicadora}|{plataforma}"
-        conteudo_bytes = conteudo.encode()
-        tam = len(conteudo_bytes)
-        header = pack(HEADER_FORMAT, tam)
+        if busca_binaria(ind_primario, id_novo) != -1:
+            print("ID duplicado, a inserção não pode ser realizada")
+        else:
+            conteudo = f"{id_novo}|{nome}|{ano}|{genero}|{publicadora}|{plataforma}"
+            conteudo_bytes = conteudo.encode()
+            tam = len(conteudo_bytes)
+            header = pack(HEADER_FORMAT, tam)
 
-        with open(GAMES_FILE, "r+b") as arq:
-            arq.seek(0, os.SEEK_END)
-            offset = arq.tell()
-            arq.write(header + conteudo_bytes)
-            print(f"Inserido com sucesso ({HEADER_SIZE + tam} bytes)")
+            with open(GAMES_FILE, "r+b") as arq:
+                arq.seek(0, os.SEEK_END)
+                offset = arq.tell()
+                arq.write(header + conteudo_bytes)
+                print(f"Inserido com sucesso ({HEADER_SIZE + tam} bytes)")
 
-        entrada = EntradaPrimaria(id = id_novo, offset = offset)
-        pos_insercao = 0
-        i = 0
-        while i < len(ind_primario):
-            if ind_primario[i].id < id_novo:
-                pos_insercao = i + 1
-            i += 1
-        ind_primario.insert(pos_insercao, entrada)
+            entrada = EntradaPrimaria(id = id_novo, offset = offset)
+            pos_insercao = 0
+            i = 0
+            while i < len(ind_primario):
+                if ind_primario[i].id < id_novo:
+                    pos_insercao = i + 1
+                i += 1
+            ind_primario.insert(pos_insercao, entrada)
 
-        atualiza_secundario(ind_genero, lst, id_novo, genero)
-        atualiza_secundario(ind_publicadora, lst, id_novo, publicadora)
+            atualiza_secundario(ind_genero, lst, id_novo, genero)
+            atualiza_secundario(ind_publicadora, lst, id_novo, publicadora)
 
 
 def atualiza_secundario(indice: IndiceSecundario, lst: ListaInvertida, id_novo: int, chave: str)-> None:
@@ -334,14 +351,105 @@ def atualiza_secundario(indice: IndiceSecundario, lst: ListaInvertida, id_novo: 
         lst[pos].prox = pos_novo
 
 
-
-
-
+def remove_da_lista_invertida(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: str, id_remover: int) -> None:
+    '''Remove id_remover da cadeia da lista invertida associada à chave.'''
+    pos_ind = busca_binaria_secundaria(indice, chave)
+    if pos_ind == -1:
+        return None
  
+    pos_atual = indice[pos_ind].pos
+    pos_anterior = -1
+ 
+    while pos_atual != -1:
+        no = lst_inv[pos_atual]
+        if no.id == id_remover:
+            if pos_anterior == -1:
+                indice[pos_ind].pos = no.prox
+            else:
+                lst_inv[pos_anterior].prox = no.prox
+ 
+            if indice[pos_ind].pos == -1:
+                indice.pop(pos_ind)
+            return None
+        pos_anterior = pos_atual
+        pos_atual = no.prox
 
 
-def remocao():
-    pass
+def remocao(id_remov: int,  indice_primario: IndicePrimario, ind_genero: IndiceSecundario, ind_publicadora, lst: ListaInvertida) -> None:
+    '''Remove o registro logicamente e marca com '*' no arquivo.'''
+ 
+    pos_p = busca_binaria(indice_primario, id_remov)
+    if pos_p == -1:
+        print("Registro não encontrado")
+        return
+ 
+    offset = indice_primario[pos_p].offset
+ 
+    with open(GAMES_FILE, "rb") as arq:
+        jogo, _ = le_registro(arq, offset)
+ 
+    if jogo is None:
+        print(f"Inconsistência: offset {offset} não contém registro válido.")
+        return
+ 
+    byte_original = None
+    try:
+        with open(GAMES_FILE, "r+b") as arq:
+            arq.seek(offset + HEADER_SIZE, os.SEEK_SET)
+            byte_original = arq.read(1)
+            arq.seek(offset + HEADER_SIZE, os.SEEK_SET)
+            arq.write(DELETION_MARK.encode())
+ 
+        indice_primario.pop(pos_p)
+        remove_da_lista_invertida(ind_genero, lst, jogo.genero, id_remov)
+        remove_da_lista_invertida(ind_publicadora, lst, jogo.publicadora, id_remov)
+ 
+        print(f'Remoção do registro de chave "{id_remov}" (offset = {offset})')
+ 
+    except Exception as e:
+        if byte_original is not None:
+            with open(GAMES_FILE, "r+b") as arq:
+                arq.seek(offset + HEADER_SIZE, os.SEEK_SET)
+                arq.write(byte_original)
+        print(f"Erro: {e}")
+
+    return None
+
+
+def executa_operacoes(arq_operacoes: str) -> None:
+    '''Executa as operações presentes no arquivo .txt de operações'''
+
+    indice_primario = carrega_indice_primario()
+    ind_genero = carrega_indice_secundario(GENRE_IND)
+    ind_publicadora = carrega_indice_secundario(PUBLISHER_IND)
+    lst = carrega_lista_invertida()
+
+    try:
+        with open(arq_operacoes, 'r') as operacoes:
+            for operacao in operacoes:
+                operacao = operacao.strip()
+                if not operacao:
+                    continue
+                
+                partes = operacao.split(" ", 1)
+                comando = partes[0]
+                resto = partes[1]
+
+                if comando == "bp":
+                    busca_primario(indice_primario, int(resto))
+                elif comando == "bs1":
+                    busca_secundario(ind_genero, lst, resto, "genero")
+                elif comando == "bs2":
+                    busca_secundario(ind_publicadora, lst, resto, "publicadora")
+                elif comando == "i":
+                    insercao(indice_primario, ind_genero, ind_publicadora, lst, resto)
+                elif comando == "r":
+                    remocao(int(resto), indice_primario, ind_genero, ind_publicadora, lst)
+                else:
+                    print("Operação inválida.")
+    
+    except FileNotFoundError:
+        print("Arquivo não encontrado.")
 
 def compactacao():
     pass
