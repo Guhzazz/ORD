@@ -419,11 +419,11 @@ def executa_operacoes(arq_operacoes: str) -> None:
                 if comando == "bp":
                     busca_primario(indice_primario, int(resto))
                 elif comando == "bs1":
-                    busca_primario(ind_genero, lst, indice_primario, resto, "genero")
+                    busca_securandio(ind_genero, lst, indice_primario, resto, "genero")
                 elif comando == "bs2":
                     busca_secundario(ind_publicadora, lst, indice_primario, resto, "publicadora")
                 elif comando == "i":
-                    insercao(int(resto), indice_primario, ind_genero, ind_publicadora, lst)
+                    insercao(indice_primario, ind_genero, ind_publicadora, lst, resto)
                 elif comando == "r":
                     remocao(int(resto), indice_primario, ind_genero, ind_publicadora, lst)
                 else:
