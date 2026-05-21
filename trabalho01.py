@@ -103,7 +103,7 @@ def le_registro(arquivo: io.TextIOWrapper, offset: int)-> tuple[Jogo | None, int
         print("Erro em le_arquivo")
 
 
-def percorre_registros(arquivo: io.TextIOWrapper)-> list[tuple[Jogo, int]]:
+def percorre_registros()-> list[tuple[Jogo, int]]:
     '''Percorre o arquivo do ínicio ao fim, pulando arquivos logicamente removidos'''
     resultado = []
     offset = 0
@@ -160,7 +160,7 @@ def salva_lista_invertida(lista: ListaInvertida)-> None:
     na lista é a sua posição lógica'''
     with open(INV_LIST_FILE, "w") as arq:
         for no in lista:
-            arq.write(f"{no['id']}|{no['prox']}\n")
+            arq.write(f"{no.id}|{no.prox}\n")
 
 
 def carrega_lista_invertida()-> ListaInvertida:
@@ -177,10 +177,30 @@ def carrega_lista_invertida()-> ListaInvertida:
 def constroe_indice()-> None:
     '''Utiliza as funções de "salva" e "carrega" dos indices primarios, secundários
     e a lista invertida para consttuir os indices do programa'''
-    jogos_lidos = percorre_registros(GAMES_FILE)
-    print(f"\nTotal de jogos válidos encontrados: {len(jogos_lidos)}")
-    for jogo, offset in jogos_lidos[:3]:
-        print(f"Offset: {offset} | Jogo: {jogo.id} - {jogo.nome} ({jogo.genero})")
+    jogos_lidos = percorre_registros()
+    if not jogos_lidos:
+        print("Nenhum registro encontrado")
+    else:
+        indice_primario: IndicePrimario = []
+        indice_genero: IndiceSecundario = []
+        indice_publicadora: IndiceSecundario = []
+        lst_invertida: ListaInvertida = []
+
+        print(f"\nTotal de jogos válidos encontrados: {len(jogos_lidos)}")
+        for jogo, offset in jogos_lidos[:3]:
+            print(f"Offset: {offset} | Jogo: {jogo.id} - {jogo.nome} ({jogo.genero})")
+
+        for jogo, offset in jogos_lidos:
+            entrada = EntradaPrimaria(id=jogo.id, offset=offset)
+            indice_primario.append(entrada)
+
+            atualiza_secundario(indice_genero, lst_invertida, jogo.id, jogo.genero)
+            atualiza_secundario(indice_publicadora, lst_invertida, jogo.id, jogo.publicadora)
+
+        salva_indice_primario(indice_primario)
+        salva_indice_secundario(indice_genero, GENRE_IND)
+        salva_indice_secundario(indice_publicadora, PUBLISHER_IND)
+        salva_lista_invertida(lst_invertida)
 
     return None
 
@@ -419,9 +439,9 @@ def executa_operacoes(arq_operacoes: str) -> None:
                 if comando == "bp":
                     busca_primario(indice_primario, int(resto))
                 elif comando == "bs1":
-                    busca_securandio(ind_genero, lst, indice_primario, resto, "genero")
+                    busca_secundario(ind_genero, lst, resto, "genero")
                 elif comando == "bs2":
-                    busca_secundario(ind_publicadora, lst, indice_primario, resto, "publicadora")
+                    busca_secundario(ind_publicadora, lst, resto, "publicadora")
                 elif comando == "i":
                     insercao(indice_primario, ind_genero, ind_publicadora, lst, resto)
                 elif comando == "r":
