@@ -23,14 +23,17 @@ def main() -> None:
     flag = argv[1]
     if flag == "-b":
         constroe_indice()
+        
     elif flag == "-e":
         if len(argv) < 3:
             print("Erro: Informe também o arquivo de operações")
             return None
         arquivo_operacoes = argv[2]
         executa_operacoes(arquivo_operacoes)
+
     elif flag == "-c":
-        pass
+        compactacao()
+
     else:
         print(f"Flag não identificada: {flag}")
 
@@ -466,6 +469,25 @@ def executa_operacoes(arq_operacoes: str) -> None:
     salva_lista_invertida(lst)
 
     return None
+
+def compactacao() -> None:
+    '''Reescreve games.dat sem os registros marcados como removidos,
+    eliminando a fragmentação. Reconstrói o índice primário em seguida'''
+
+    registros_validos: list[Jogo] = []
+    with open(GAMES_FILE, "rb") as arq:
+        for jogo, _ in percorre_registros():
+            registros_validos.append(jogo)
+    
+    with open(GAMES_FILE, "wb") as  arqs:   
+        for jogo in registros_validos:
+            conteudo_bytes = jogo.raw.encode()
+            tamanho = len(conteudo_bytes)
+            header = pack(HEADER_FORMAT, tamanho)
+            arqs.write(header + conteudo_bytes)
+
+        print("Compactação realizada com sucesso")
+    constroe_indice()
 
 if __name__ == "__main__":
     main()
