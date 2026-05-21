@@ -259,7 +259,7 @@ def busca_primario(indice: IndicePrimario, id_buscado: int)-> None:
                 print("Registro não encontrado.")
         
 
-def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: str, tipo: str)->None:
+def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, indice_primario: IndicePrimario, chave: str, tipo: str)->None:
     '''Busca e imprime todos os registros associados a uma chave secundária,
     percorrendo a lista invertida e acessando cada registro por byte-offset'''
     if tipo == "genero":
@@ -277,9 +277,8 @@ def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: s
             no = lst_inv[pos]
             ids.append(no.id)
             pos = no.prox
-        print(f"({len(ids)}) registros")
+        print(f"({len(ids)} registros)")
 
-        indice_primario = carrega_indice_primario()
         with open(GAMES_FILE, "rb") as arq:
             for id_jogo in ids:
                 pos_p = busca_binaria(indice_primario, id_jogo)
@@ -448,9 +447,9 @@ def executa_operacoes(arq_operacoes: str) -> None:
                 if comando == "bp":
                     busca_primario(indice_primario, int(resto))
                 elif comando == "bs1":
-                    busca_secundario(ind_genero, lst, resto, "genero")
+                    busca_secundario(ind_genero, lst, indice_primario, resto, "genero")
                 elif comando == "bs2":
-                    busca_secundario(ind_publicadora, lst, resto, "publicadora")
+                    busca_secundario(ind_publicadora, lst, indice_primario, resto, "publicadora")
                 elif comando == "i":
                     insercao(indice_primario, ind_genero, ind_publicadora, lst, resto)
                 elif comando == "r":
@@ -461,6 +460,12 @@ def executa_operacoes(arq_operacoes: str) -> None:
     except FileNotFoundError:
         print("Arquivo não encontrado.")
 
+    salva_indice_primario(indice_primario)
+    salva_indice_secundario(ind_genero, GENRE_IND)
+    salva_indice_secundario(ind_publicadora, PUBLISHER_IND)
+    salva_lista_invertida(lst)
+
     return None
+
 if __name__ == "__main__":
     main()
