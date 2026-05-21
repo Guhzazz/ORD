@@ -13,17 +13,17 @@ PUBLISHER_IND = "publicadora.ind"
 HEADER_FORMAT = "h"
 INV_LIST_FILE = "listaInvertida.lst"
 
-def main() -> None:
-    print("Uso do programa:\n" \
-    "python programa.py -flag\n" \
-    "Flags disponíveis: -b(construir), -e(arq operações), -c(compactar)")
+def main() -> None:    
     if len(argv) < 2:
+        print("Uso do programa:\n" \
+        "python programa.py -flag\n" \
+        "Flags disponíveis: -b(construir), -e(operações), -c(compactar)")
         raise TypeError("Número incorreto de argumentos\n")
 
     flag = argv[1]
     if flag == "-b":
         constroe_indice()
-        
+
     elif flag == "-e":
         if len(argv) < 3:
             print("Erro: Informe também o arquivo de operações")
