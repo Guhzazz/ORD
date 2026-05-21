@@ -173,6 +173,10 @@ def carrega_lista_invertida()-> ListaInvertida:
             lista.append(NoListainvertida(id=int(partes[0]), prox=int(partes[1])))
     return lista
 
+def pega_id(entrada: EntradaPrimaria) -> int:
+    '''Função auxiliar para o sort ordenar pelo ID'''
+    return entrada.id
+
 def constroe_indice()-> None:
     '''Utiliza as funções de "salva" e "carrega" dos indices primarios, secundários
     e a lista invertida para consttuir os indices do programa'''
@@ -195,6 +199,8 @@ def constroe_indice()-> None:
 
             atualiza_secundario(indice_genero, lst_invertida, jogo.id, jogo.genero)
             atualiza_secundario(indice_publicadora, lst_invertida, jogo.id, jogo.publicadora)
+
+        indice_primario.sort(key=pega_id)
 
         salva_indice_primario(indice_primario)
         salva_indice_secundario(indice_genero, GENRE_IND)
@@ -257,9 +263,9 @@ def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: s
     '''Busca e imprime todos os registros associados a uma chave secundária,
     percorrendo a lista invertida e acessando cada registro por byte-offset'''
     if tipo == "genero":
-        print(f"Busca por registros de gênero: {chave}")
+        print(f'Busca por registros de gênero: "{chave}"')
     else:
-        print(f"Busca por registros da publicadora: {chave}")
+        print(f'Busca por registros da publicadora: "{chave}"')
 
     pos_ind = busca_binaria_secundaria(indice, chave)
     if pos_ind == -1:
@@ -377,7 +383,10 @@ def remocao(id_remov: int,  indice_primario: IndicePrimario, ind_genero: IndiceS
     '''Remove o registro logicamente e marca com '*' no arquivo.'''
  
     pos_p = busca_binaria(indice_primario, id_remov)
+
     if pos_p == -1:
+        print("")
+        print(f'Remoção do registro de chave "{id_remov}"')
         print("Registro não encontrado")
         return
  
@@ -431,6 +440,7 @@ def executa_operacoes(arq_operacoes: str) -> None:
                 if not operacao:
                     continue
                 
+                print()
                 partes = operacao.split(" ", 1)
                 comando = partes[0]
                 resto = partes[1]
