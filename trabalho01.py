@@ -1,7 +1,7 @@
 import io
 import os
 from sys import argv
-from struct import pack, unpack
+from struct import pack, unpack, calcsize
 from dataclasses import dataclass
 
 GAMES_FILE = "games.dat"
@@ -30,7 +30,7 @@ def main() -> None:
         arquivo_operacoes = argv[2]
         executa_operacoes(arquivo_operacoes)
     elif flag == "-c":
-        pass
+        compactacao()
     else:
         print(f"Flag não identificada: {flag}")
 
@@ -103,7 +103,7 @@ def le_registro(arquivo: io.TextIOWrapper, offset: int)-> tuple[Jogo | None, int
         print("Erro em le_arquivo")
 
 
-def percorre_registros(arquivo: io.TextIOWrapper)-> list[tuple[Jogo, int]]:
+def percorre_registros()-> list[tuple[Jogo, int]]:
     '''Percorre o arquivo do ínicio ao fim, pulando arquivos logicamente removidos'''
     resultado = []
     offset = 0
@@ -123,20 +123,17 @@ def salva_indice_primario(indice: IndicePrimario)-> None:
     '''Persiste o íncice primário em primario.ind'''
     with open(PRIMARY_IND, 'w') as arq:
         for dado in indice:
-            arq.write(f"{dado.id} | {dado.offset}\n")
+            arq.write(f"{dado.id}|{dado.offset}\n")
 
 
 def carrega_indice_primario()-> IndicePrimario:
     '''Lê  o arquivo primario.ind e reconstrói a lista indice_primario na memória'''
-    try:
-        indice: IndicePrimario = []
-        with open(PRIMARY_IND, "r") as arq:
-            for linha in arq:
-                linha = linha.strip()
-                partes = linha.split("|")
-                indice.append(EntradaPrimaria(id = int(partes[0]), offset = int(partes[1])))
-    except FileNotFoundError:
-        print("Erro, arquivo não encontrado")
+    indice: IndicePrimario = []
+    with open(PRIMARY_IND, "r") as arq:
+        for linha in arq:
+            linha = linha.strip()
+            partes = linha.split("|")
+            indice.append(EntradaPrimaria(id=int(partes[0]), offset=int(partes[1])))
     return indice
 
 
@@ -149,15 +146,12 @@ def salva_indice_secundario(indice: IndiceSecundario, caminho: str)-> None:
 
 def carrega_indice_secundario(caminho: str)-> IndiceSecundario:
     "Lê um arquivo de índice secundario e reconstrói a lista na memória"
-    try:
-        indice: IndiceSecundario = []
-        with open(caminho, "r") as arq:
-            for linha in arq:
-                linha = linha.strip()
-                partes = linha.split("|", 1)
-                indice.append(EntradaSecundaria(chave = partes[0], pos = int(partes[1])))
-    except FileNotFoundError:
-        print("Erro, arquivo não encontrado")
+    indice: IndiceSecundario = []
+    with open(caminho, "r") as arq:
+        for linha in arq:
+            linha = linha.strip()
+            partes = linha.split("|", 1)
+            indice.append(EntradaSecundaria(chave=partes[0], pos=int(partes[1])))
     return indice
 
 
@@ -171,32 +165,50 @@ def salva_lista_invertida(lista: ListaInvertida)-> None:
 
 def carrega_lista_invertida()-> ListaInvertida:
     "Lê o arquivo listaInvertida.lst e reconstrói a lista na memória"
-    try:
-        lista: ListaInvertida =[]
-        with open(INV_LIST_FILE, "r") as arq:
-            for linha in arq:
-                linha = linha.strip()
-                partes = linha.split("|")
-                lista.append(NoListainvertida(id = int(partes[0]), prox = int(partes[1])))
-    except FileNotFoundError:
-        print("Erro, arquivo não encontrado")
+    lista: ListaInvertida =[]
+    with open(INV_LIST_FILE, "r") as arq:
+        for linha in arq:
+            linha = linha.strip()
+            partes = linha.split("|")
+            lista.append(NoListainvertida(id=int(partes[0]), prox=int(partes[1])))
     return lista
+
+
+def pega_id(entrada: EntradaPrimaria) -> int:
+    '''Função auxiliar para o sort ordenar pelo ID'''
+    return entrada.id
 
 
 def constroe_indice()-> None:
     '''Utiliza as funções de "salva" e "carrega" dos indices primarios, secundários
     e a lista invertida para consttuir os indices do programa'''
-    jogos_lidos = percorre_registros(GAMES_FILE)
-    print(f"\nTotal de jogos válidos encontrados: {len(jogos_lidos)}")
+    jogos_lidos = percorre_registros()
+    if not jogos_lidos:
+        print("Nenhum registro encontrado")
+    else:
+        indice_primario: IndicePrimario = []
+        indice_genero: IndiceSecundario = []
+        indice_publicadora: IndiceSecundario = []
+        lst_invertida: ListaInvertida = []
 
-    indice_primario: IndicePrimario = []
+        print(f"\nTotal de jogos válidos encontrados: {len(jogos_lidos)}")
+        for jogo, offset in jogos_lidos[:3]:
+            print(f"Offset: {offset} | Jogo: {jogo.id} - {jogo.nome} ({jogo.genero})")
 
-    for jogo, offset in jogos_lidos[:3]:
-        print(f"Offset: {offset} | Jogo: {jogo.id} - {jogo.nome} ({jogo.genero})")
+        for jogo, offset in jogos_lidos:
+            entrada = EntradaPrimaria(id=jogo.id, offset=offset)
+            indice_primario.append(entrada)
 
-    for jogo, offset in jogos_lidos:
-        indice_primario.append(EntradaPrimaria(id = jogo.id, offset = offset))
-        
+            atualiza_secundario(indice_genero, lst_invertida, jogo.id, jogo.genero)
+            atualiza_secundario(indice_publicadora, lst_invertida, jogo.id, jogo.publicadora)
+
+        indice_primario.sort(key=pega_id)
+
+
+        salva_indice_primario(indice_primario)
+        salva_indice_secundario(indice_genero, GENRE_IND)
+        salva_indice_secundario(indice_publicadora, PUBLISHER_IND)
+        salva_lista_invertida(lst_invertida)
 
     return None
 
@@ -253,7 +265,6 @@ def busca_primario(indice: IndicePrimario, id_buscado: int)-> None:
 def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: str, tipo: str)->None:
     '''Busca e imprime todos os registros associados a uma chave secundária,
     percorrendo a lista invertida e acessando cada registro por byte-offset'''
-    
     if tipo == "genero":
         print(f"Busca por registros de gênero: {chave}")
     else:
@@ -279,9 +290,6 @@ def busca_secundario(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: s
                     jogo, _ = le_registro(arq, indice_primario[pos_p].offset)
                     if jogo:
                         print(formata_registro(jogo))
-
-
-
 
 
 def insercao(ind_primario: IndicePrimario, ind_genero: IndiceSecundario, ind_publicadora: IndiceSecundario, lst: ListaInvertida, linha_op: str)-> None:
@@ -350,7 +358,6 @@ def atualiza_secundario(indice: IndiceSecundario, lst: ListaInvertida, id_novo: 
             pos = lst[pos].prox
         lst[pos].prox = pos_novo
 
-
 def remove_da_lista_invertida(indice: IndiceSecundario, lst_inv: ListaInvertida, chave: str, id_remover: int) -> None:
     '''Remove id_remover da cadeia da lista invertida associada à chave.'''
     pos_ind = busca_binaria_secundaria(indice, chave)
@@ -416,6 +423,7 @@ def remocao(id_remov: int,  indice_primario: IndicePrimario, ind_genero: IndiceS
     return None
 
 
+
 def executa_operacoes(arq_operacoes: str) -> None:
     '''Executa as operações presentes no arquivo .txt de operações'''
 
@@ -451,23 +459,27 @@ def executa_operacoes(arq_operacoes: str) -> None:
     except FileNotFoundError:
         print("Arquivo não encontrado.")
 
-def compactacao():
-    pass
+    return None
 
 
+def compactacao() -> None:
+    '''Reescreve games.dat sem os registros marcados como removidos,
+    eliminando a fragmentação. Reconstrói o índice primário em seguida'''
 
+    registros_validos: list[Jogo] = []
+    with open(GAMES_FILE, "rb") as arq:
+        for jogo, _ in percorre_registros():
+            registros_validos.append(jogo)
+    
+    with open(GAMES_FILE, "wb") as  arqs:
+        for jogo in registros_validos:
+            conteudo_bytes = jogo.raw.encode()
+            tamanho = len(conteudo_bytes)
+            header = pack(HEADER_FORMAT, tamanho)
+            arqs.write(header + conteudo_bytes)
 
-
-
-
-
-
-
-
-
-
-
-
+        print("Compactação realizada com sucesso")
+    constroe_indice()
 
 if __name__ == "__main__":
     main()
