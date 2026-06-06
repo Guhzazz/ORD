@@ -43,7 +43,7 @@ def converte_pag(self)-> bytes:
             campos += [CHAVE_NULA, OFFSET_NULO]
         else:
             campos += [i[0], i[1]]
-            
+
 
 def ler_raiz(arq: io.TextIOWrapper)-> int:
     '''Lê o RRN da raiz armazenado no cabeçalho do arquivo'''
@@ -100,7 +100,24 @@ def buscaNaArvore(chave: int, rrn)-> tuple:
 
 
 def main()-> None:
-    pass
+    args = sys.argv[1:]
+
+    if not args:
+        print("Uso: python programa.py -b | -e <arquivo_ops> | -p")
+    
+    flag = args[0]
+
+    if flag == "-b":
+        pass
+    elif flag == "-e":
+        if len(args) < 2:
+            print("Erro, informe o nome do arquivo de operações")
+            pass
+    elif flag == "-p":
+        pass
+    else:
+        print(f"Flag desconhecida: {flag}")
+        print("Uso: python programa.py -b | -e <arquivo_ops> | -p")
 
 
 if __name__ == "__main__":
