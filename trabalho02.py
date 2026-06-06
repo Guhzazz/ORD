@@ -43,6 +43,18 @@ def converte_pag(self)-> bytes:
             campos += [CHAVE_NULA, OFFSET_NULO]
         else:
             campos += [i[0], i[1]]
+    
+    for filho in self.filhos:
+        if filho is None:
+            campos.append(FILHO_NULO)
+        else:
+            campos.append(filho)
+    return struct.pack(HEADER_FORMAT, *campos)
+
+
+def reconstroi_pagina(dados: bytes)-> Pagina:
+    '''Reconstrói uma página a partir de bytes lidos do disco'''
+    
 
 
 def ler_raiz(arq: io.TextIOWrapper)-> int:
