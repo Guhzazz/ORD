@@ -59,6 +59,18 @@ def escrever_raiz(arq: io.TextIOWrapper, rrn: int)-> None:
     arq.write(struct.pack(HEADER_FORMAT, rrn))
 
 
+def ler_registro(arq_games: io.TextIOWrapper, offset: int)-> str:
+    '''Lê e retorna o registro localizado em **ofsset** dentro de games.dat'''
+
+    arq_games.seek(offset)
+    saida = arq_games.readline().decode().strip()
+    return saida
+
+def parse_id(linha: str)-> int:
+    '''Extrai a chave primária de uma **linha** do arquivo games.dat'''
+
+    return int(linha.split("|")[0])
+
 
 
 
