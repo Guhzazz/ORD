@@ -10,10 +10,13 @@ import io
 
 #Constantes
 ORDEM = 5
+
 CHAVE_NULA = -1
 FILHO_NULO = -1
 OFFSET_NULO = -1
+
 HEADER_SIZE = 4
+HEADER_FORMAT = "i"
 
 
 class Pagina:
@@ -39,14 +42,14 @@ def converte_pag(self)-> bytes:
             campos += [i[0], i[1]]
 
 
-def offset_rrn(rrn: int)-> int:
-    '''Calcula o byte-offset de uma página no arquivo a partir de seu RRN'''
-    return HEADER_SIZE + rrn * Pagina.tamanho_pagina()
+
 
 
 def ler_pag(arq: io.TextIOWrapper, rrn: int)-> Pagina:
     '''Lê uma página do arquivo da árvore B'''
-    arq.seek(offset_rrn(rrn))
+    byte_offset = HEADER_SIZE + rrn * Pagina.tamanho()
+    arq.seek(byte_offset)
+
 
 
 
@@ -63,12 +66,17 @@ def buscaNaPagina(chave: int, pag: Pagina)-> tuple[bool, int]:
         return False, pos
     
 
-def buscaNaArvore(chave: int, rrn: int)-> tuple[bool, int, int]:
+def buscaNaArvore(chave: int, rrn)-> tuple:
     if rrn == None:
         return False, None, None
     else:
-        pass
+        pag = ler_pag(, rrn)
+        achou, pos = buscaNaPagina(chave, pag)
 
+        if achou:
+            return True, rrn, pos
+        else:
+            return buscaNaArvore(chave, pag.filhos[pos])
 
 
 def main()-> None:
