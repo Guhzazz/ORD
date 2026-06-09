@@ -17,6 +17,7 @@ OFFSET_NULO = -1
 
 HEADER_SIZE = 4
 HEADER_FORMAT = "i"
+GAMES_FILE = "games.dat"
 
 
 class Pagina:
