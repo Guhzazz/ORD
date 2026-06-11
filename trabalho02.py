@@ -29,28 +29,29 @@ class Pagina:
         self.filhos: list = [None] * ORDEM
 
 
+
+    def converte_pag(self)-> bytes:
+        '''Converte  a página para uma sequência de bytes que pode ser gravada em disco'''
+
+        campos = [self.numChaves]
+        for i in self.chaves:
+            if i is None:
+                campos += [CHAVE_NULA, OFFSET_NULO]
+            else:
+                campos += [i[0], i[1]]
+        
+        for filho in self.filhos:
+            if filho is None:
+                campos.append(FILHO_NULO)
+            else:
+                campos.append(filho)
+        return struct.pack(HEADER_FORMAT, *campos)
+
+
 def tamanho_pagina()-> int:
     '''Calcula o tamanho em bytes de uma página'''
 
     return (1 + 2 * (ORDEM -1)   + ORDEM) * 4
-
-
-def converte_pag(self)-> bytes:
-    '''Converte  a página para uma sequência de bytes que pode ser gravada em disco'''
-
-    campos = [self.numChaves]
-    for i in self.chaves:
-        if i is None:
-            campos += [CHAVE_NULA, OFFSET_NULO]
-        else:
-            campos += [i[0], i[1]]
-    
-    for filho in self.filhos:
-        if filho is None:
-            campos.append(FILHO_NULO)
-        else:
-            campos.append(filho)
-    return struct.pack(HEADER_FORMAT, *campos)
 
 
 def reconstroi_pagina(dados: bytes)-> Pagina:
@@ -78,6 +79,7 @@ def ler_registro(arq_games: io.TextIOWrapper, offset: int)-> str:
     arq_games.seek(offset)
     saida = arq_games.readline().decode().strip()
     return saida
+
 
 def parse_id(linha: str)-> int:
     '''Extrai a chave primária de uma **linha** do arquivo games.dat'''
