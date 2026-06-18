@@ -46,6 +46,11 @@ class Pagina:
             else:
                 campos.append(filho)
         return struct.pack(HEADER_FORMAT, *campos)
+    
+
+
+def reverte_pag(dados: bytes)-> 'Pagina':
+    '''Reconstrói uma página a partir de bytes lidos do disco'''
 
 
 def tamanho_pagina()-> int:
@@ -56,6 +61,7 @@ def tamanho_pagina()-> int:
 
 def reconstroi_pagina(dados: bytes)-> Pagina:
     '''Reconstrói uma página a partir de bytes lidos do disco'''
+    
     
 
 
