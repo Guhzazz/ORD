@@ -52,6 +52,27 @@ class Pagina:
 def reverte_pag(dados: bytes)-> 'Pagina':
     '''Reconstrói uma página a partir de bytes lidos do disco'''
 
+    valores = struct.unpack(HEADER_FORMAT, dados)
+    p = Pagina()
+    p.numChaves = valores[0]
+
+    for i in range(ORDEM - 1):
+        chave = valores[1 + i * 2]
+        offset = valores[2 + i * 2]
+        if chave == CHAVE_NULA:
+            p.chaves[i] = None
+        else:
+            p.chaves[i] = (chave, offset)
+    
+    inicio_filhos = 1 + 2 * (ORDEM - 1)
+    for i in range(ORDEM):
+        v = valores[inicio_filhos + i]
+        if v == FILHO_NULO:
+            p.filhos[i] = None
+        else:
+            p.filhos[i] = v
+            
+    return p
 
 def tamanho_pagina()-> int:
     '''Calcula o tamanho em bytes de uma página'''
