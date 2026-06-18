@@ -28,6 +28,10 @@ class Pagina:
         self.chaves: list = [None] * (ORDEM - 1)
         self.filhos: list = [None] * ORDEM
 
+    def tamanho_pagina()-> int:
+        '''Calcula o tamanho em bytes de uma página'''
+
+        return (1 + 2 * (ORDEM -1)   + ORDEM) * 4
 
 
     def converte_pag(self)-> bytes:
@@ -71,13 +75,9 @@ def reverte_pag(dados: bytes)-> 'Pagina':
             p.filhos[i] = None
         else:
             p.filhos[i] = v
-            
+
     return p
 
-def tamanho_pagina()-> int:
-    '''Calcula o tamanho em bytes de uma página'''
-
-    return (1 + 2 * (ORDEM -1)   + ORDEM) * 4
 
 
 def reconstroi_pagina(dados: bytes)-> Pagina:
@@ -121,6 +121,7 @@ def ler_pag(arq: io.TextIOWrapper, rrn: int)-> Pagina:
 
     byte_offset = HEADER_SIZE + rrn * Pagina.tamanho()
     arq.seek(byte_offset)
+    return Pagina.converte_pag(arq.read(Pagina.tamanho))
 
 
 
@@ -139,12 +140,12 @@ def buscaNaPagina(chave: int, pag: Pagina)-> tuple[bool, int]:
         return False, pos
     
 
-def buscaNaArvore(chave: int, rrn)-> tuple:
+def buscaNaArvore(arq: io.TextIOWrapper, chave: int, rrn)-> tuple:
     '''Busca recursiva na árvore a partir de um RRN'''
     if rrn == None:
         return False, None, None
     else:
-        pag = ler_pag(, rrn)
+        pag = ler_pag(arq, rrn)
         achou, pos = buscaNaPagina(chave, pag)
 
         if achou:
