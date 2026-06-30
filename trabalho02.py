@@ -122,7 +122,7 @@ def ler_pag(arq: io.TextIOWrapper, rrn: int)-> Pagina:
 
     byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
     arq.seek(byte_offset)
-    return reverte_pag(arq.read(Pagina.tamanho_pagina))
+    return reverte_pag(arq.read(Pagina.tamanho_pagina()))
 
 
 
@@ -143,7 +143,7 @@ def buscaNaPagina(chave: int, pag: Pagina)-> tuple[bool, int]:
 
 def buscaNaArvore(arq: io.TextIOWrapper, chave: int, rrn)-> tuple:
     '''Busca recursiva na árvore a partir de um RRN'''
-    if rrn == None:
+    if rrn is None:
         return False, None, None
     else:
         pag = ler_pag(arq, rrn)
