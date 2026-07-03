@@ -22,6 +22,8 @@ GAMES_FILE = "games.dat"
 BTREE_FILE = "btree.dat"
 
 
+#Estrutura de Página
+
 class Pagina:
     '''Inicializa a estrutura de uma página vazia na árvore B'''
 
@@ -86,7 +88,15 @@ def reverte_pag(dados: bytes)-> 'Pagina':
 def reconstroi_pagina(dados: bytes)-> Pagina:
     '''Reconstrói uma página a partir de bytes lidos do disco'''
     
+
+def aloca_pag(arq: io.TextIOWrapper, pag: Pagina)-> int:
+    '''Grava uma nova página no final do arquivo btree.dat e retorna o rrn alocado'''
     
+    arq.seek(0, os.SEEK_END)
+    rrn = (arq.tell() - HEADER_SIZE) // Pagina.tamanho_pagina()
+    arq.write(pag.converte_pag())
+
+    return rrn
 
 
 def ler_raiz(arq: io.TextIOWrapper)-> int:
@@ -128,8 +138,13 @@ def ler_pag(arq: io.TextIOWrapper, rrn: int)-> Pagina:
 
 
 
+def escrever_pag(arq: io.TextIOWrapper, rrn: int, pag: Pagina)-> None:
+    '''Grava uma página no arquivo btree.dat'''
+    byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
+    arq.seek(byte_offset)
+    arq.write(pag.converte_pag())
 
-
+# Buscas
 
 def buscaNaPagina(chave: int, pag: Pagina)-> tuple[bool, int]:
     '''Busca sequencial dentro de uma única página'''
@@ -155,6 +170,18 @@ def buscaNaArvore(arq: io.TextIOWrapper, chave: int, rrn)-> tuple:
             return True, rrn, pos
         else:
             return buscaNaArvore(arq, chave, pag.filhos[pos])
+
+
+def buscar(arq: io.TextIOWrapper, rrn_raiz: int, chave: int)-> tuple:
+    '''Ponto de entrada da busca na árvore B'''
+    achou, rrn, pos = buscaNaArvore(arq, chave, rrn_raiz)
+
+    if not achou:
+        return None
+    
+    pag = ler_pag(arq, rrn)
+    offset = pag.chaves[pos][1]
+    return rrn, pos, offset
 
 
 def main()-> None:
