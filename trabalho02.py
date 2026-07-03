@@ -17,6 +17,7 @@ OFFSET_NULO = -1
 
 HEADER_SIZE = 4
 HEADER_FORMAT = "i"
+PAG_FORMAT = f"{1 + 2 * (ORDEM - 1) + ORDEM}i"
 GAMES_FILE = "games.dat"
 BTREE_FILE = "btree.dat"
 
@@ -28,7 +29,8 @@ class Pagina:
         self.numChaves: int = 0
         self.chaves: list = [None] * (ORDEM - 1)
         self.filhos: list = [None] * ORDEM
-
+    
+    @staticmethod
     def tamanho_pagina()-> int:
         '''Calcula o tamanho em bytes de uma página'''
 
@@ -50,14 +52,14 @@ class Pagina:
                 campos.append(FILHO_NULO)
             else:
                 campos.append(filho)
-        return struct.pack(HEADER_FORMAT, *campos)
+        return struct.pack(PAG_FORMAT, *campos)
     
 
 
 def reverte_pag(dados: bytes)-> 'Pagina':
     '''Reconstrói uma página a partir de bytes lidos do disco'''
 
-    valores = struct.unpack(HEADER_FORMAT, dados)
+    valores = struct.unpack(PAG_FORMAT, dados)
     p = Pagina()
     p.numChaves = valores[0]
 
@@ -174,6 +176,8 @@ def main()-> None:
     else:
         print(f"Flag desconhecida: {flag}")
         print("Uso: python programa.py -b | -e <arquivo_ops> | -p")
+
+
 
 
 if __name__ == "__main__":
