@@ -34,7 +34,8 @@ class Pagina:
     
     @staticmethod
     def tamanho_pagina()-> int:
-        '''Calcula o tamanho em bytes de uma página'''
+        '''Calcula o tamanho em bytes de uma página
+        Cálculo: (1 + 2*(ORDEM-1) + ORDEM) campos x 4 bytes cada'''
 
         return (1 + 2 * (ORDEM -1)   + ORDEM) * 4
 
@@ -84,10 +85,6 @@ def reverte_pag(dados: bytes)-> 'Pagina':
     return p
 
 
-
-def reconstroi_pagina(dados: bytes)-> Pagina:
-    '''Reconstrói uma página a partir de bytes lidos do disco'''
-    
 
 def aloca_pag(arq: io.TextIOWrapper, pag: Pagina)-> int:
     '''Grava uma nova página no final do arquivo btree.dat e retorna o rrn alocado'''
@@ -161,6 +158,7 @@ def buscaNaPagina(chave: int, pag: Pagina)-> tuple[bool, int]:
 def buscaNaArvore(arq: io.TextIOWrapper, chave: int, rrn)-> tuple:
     '''Busca recursiva na árvore a partir de um RRN'''
     if rrn is None:
+        # Parada da recursão
         return False, None, None
     else:
         pag = ler_pag(arq, rrn)
@@ -169,6 +167,7 @@ def buscaNaArvore(arq: io.TextIOWrapper, chave: int, rrn)-> tuple:
         if achou:
             return True, rrn, pos
         else:
+            # Busca na página filha
             return buscaNaArvore(arq, chave, pag.filhos[pos])
 
 
@@ -182,6 +181,60 @@ def buscar(arq: io.TextIOWrapper, rrn_raiz: int, chave: int)-> tuple:
     pag = ler_pag(arq, rrn)
     offset = pag.chaves[pos][1]
     return rrn, pos, offset
+
+
+# Auxiliares da inserção na árvore
+
+def insereNaPagina(chave: int, filhoD, pag: Pagina)-> None:
+    '''Insere uma chave e seu filho direito em uma página em memória,
+    deslocando as entradas maiores para abrir posição e mantendo ordem crescente
+    '''
+    # aumenta temporariamente a capacidade da página se ela estiver cheia
+    if  pag.numChaves == len(pag.chaves):
+        pag.chaves.append(None)
+        pag.filhos.append(None)
+
+    i = pag.numChaves
+
+    while i > 0 and chave < pag.chaves[i - 1]:
+        pag.chaves[i] = pag.chaves[i - 1]
+        pag.filhos[i + 1] = pag.fihos[i]
+        i -= 1
+    
+    pag.chaves[i] = chave
+    pag.filhos[i + 1] = filhoD
+
+    pag.numChaves += 1
+
+# melhorar essa função, lógica está ruim
+# acho que da pra fazer duas funções, copia metade da direita e copia metade da esquerda
+def divide(arq: io.TextIOWrapper, chave: int, filhoD, pag: Pagina)-> tuple:
+    '''Divide uma página cheia em duas após inserir a nova chave nela'''
+    insereNaPagina(chave, filhoD, pag)
+
+    meio = ORDEM // 2
+    chavePro = pag.chaves[meio]
+
+    # filhoDpro = RRN que pNova terá no arquivo
+    arq.seek(0, os.SEEK_END)
+    filhoDPro = (arq.tell() - HEADER_SIZE) // Pagina.tamanho_pagina()
+
+    #pAtual = conteudo de pag até o meio
+    pAtual = Pagina()
+    pAtual.numChaves = meio
+    pAtual.chaves = pag.chaves[:meio] + [None] * (ORDEM - 1 - meio)
+    pAtual.filhos = pag.filhos[:meio + 1] + [None] * (ORDEM - meio - 1)
+
+    # pNove = conteudo de pag a partir de meio + 1
+    tam_dir =  ORDEM - 1 - meio
+    pNova = Pagina()
+    pNova.numChaves = tam_dir
+    pNova.chaves = pag.chaves[meio + 1: meio + 1 + tam_dir] + [None] * (ORDEM - 1 - tam_dir)
+    pNova.filhos = pag.filhos[meio + 1: meio + 1 + tam_dir] + [None] * (ORDEM - tam_dir - 1)
+
+    return chavePro, filhoDPro, pAtual, pNova
+
+
 
 
 def main()-> None:
