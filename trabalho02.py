@@ -126,21 +126,6 @@ def parse_id(linha: str)-> int:
 
 
 
-def ler_pag(arq: io.TextIOWrapper, rrn: int)-> Pagina:
-    '''Lê uma página do arquivo da árvore B'''
-
-    byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
-    arq.seek(byte_offset)
-    return reverte_pag(arq.read(Pagina.tamanho_pagina()))
-
-
-
-def escrever_pag(arq: io.TextIOWrapper, rrn: int, pag: Pagina)-> None:
-    '''Grava uma página no arquivo btree.dat'''
-    byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
-    arq.seek(byte_offset)
-    arq.write(pag.converte_pag())
-
 # Buscas
 
 def buscaNaPagina(chave: int, pag: Pagina)-> tuple[bool, int]:
@@ -184,6 +169,22 @@ def buscar(arq: io.TextIOWrapper, rrn_raiz: int, chave: int)-> tuple:
 
 
 # Auxiliares da inserção na árvore
+
+def ler_pag(arq: io.TextIOWrapper, rrn: int)-> Pagina:
+    '''Lê uma página do arquivo da árvore B'''
+
+    byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
+    arq.seek(byte_offset)
+    return reverte_pag(arq.read(Pagina.tamanho_pagina()))
+
+
+
+def escrever_pag(arq: io.TextIOWrapper, rrn: int, pag: Pagina)-> None:
+    '''Grava uma página no arquivo btree.dat'''
+    byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
+    arq.seek(byte_offset)
+    arq.write(pag.converte_pag())
+
 
 def insereNaPagina(chave: int, filhoD, pag: Pagina)-> None:
     '''Insere uma chave e seu filho direito em uma página em memória,
@@ -233,6 +234,61 @@ def divide(arq: io.TextIOWrapper, chave: int, filhoD, pag: Pagina)-> tuple:
     pNova.filhos = pag.filhos[meio + 1: meio + 1 + tam_dir] + [None] * (ORDEM - tam_dir - 1)
 
     return chavePro, filhoDPro, pAtual, pNova
+
+
+def gerenciadorDeInsercao(arq: io.TextIOWrapper, raiz: int, entradas: list)-> int:
+    '''Gerencia a inserção de uma lista de chaves na árvore B'''
+    for chave in entradas:
+        chavePro, filhoDpro, promocao = insereNaArvore(arq, raiz, chave)
+
+        if promocao:
+            pNova            = Pagina()
+            pNova.chaves[0]  = chavePro   
+            pNova.filhos[0]  = raiz       
+            pNova.filhos[1]  = filhoDpro  
+            pNova.numChaves += 1
+            raiz = aloca_pag(arq, pNova)  
+ 
+    return raiz
+
+
+
+# Inserção na árvore
+
+def insereNaArvore(arq: io.TextIOWrapper, rrn: int, chave: tuple)-> tuple:
+    '''Inserção recursiva na árvore com promoção de chave'''
+
+    if rrn is None or rrn == FILHO_NULO:
+        # Chegou "abaixo" de uma folha, promove a própria chave
+        return chave, None, True
+    
+    pag = ler_pag(arq, rrn)
+
+    i = 0
+    while i < pag.numChaves and chave[0] >  pag.chaves[i][0]:
+        i += 1
+
+    chavePro, filhoDpro, promocao = insereNaArvore(arq, pag.filhos[i], chave)
+
+    if not promocao:
+        return None, None, False
+    
+    pag = ler_pag(arq, rrn)
+
+    if pag.numChaves < ORDEM - 1:
+        # insere diretamente e persiste(cabe na pag)
+        insereNaPagina(chavePro, filhoDpro, pag)
+        escrever_pag(arq, rrn, pag)
+        return None, None, False
+    
+    else:
+        # pag cheia, divide e propaga promoção
+        chavePro, filhoDpro, pAtual, pNova = divide(arq, chavePro, filhoDpro, pag, rrn)
+        escrever_pag(arq, rrn, pAtual)
+        aloca_pag(arq, pNova)
+        return chavePro, filhoDpro, True
+
+
 
 
 
