@@ -289,6 +289,70 @@ def insereNaArvore(arq: io.TextIOWrapper, rrn: int, chave: tuple)-> tuple:
         return chavePro, filhoDpro, True
 
 
+# Execução do Arquivo de operações
+
+def executar_operacoes(nome_arquivo: str)-> None:
+    '''Lê o arquivo de operações e as executa sequencialmente em games.dat e btree.dat'''
+
+    if not os.path.exists('games.dat'):
+        print("Erro: arquivo games.dat não encontrado.")
+        return 
+ 
+    if not os.path.exists('btree.dat'):
+        print("Erro: arquivo btree.dat não encontrado.")
+        return 
+ 
+    if not os.path.exists(nome_arquivo):
+        print(f"Erro: arquivo de operações '{nome_arquivo}' não encontrado.")
+        return 
+
+    
+    with open(nome_arquivo, 'r') as arq:
+        linhas = []
+        for i in arq:
+            linha = i.strip()
+            if linha:
+                linhas.append(linha)
+
+    with open(GAMES_FILE, 'r+b') as gf, open(BTREE_FILE, 'r+b') as bf:
+        raiz = ler_raiz(bf)
+
+        for linha in linhas:
+            op = linha[0]
+            arg = linha[2:].strip()
+        
+            if op == 'b':
+                chave = int(arg)
+                print(f"Busca pelo registro de chave {chave}")
+                resultado = buscar(bf, raiz, chave)
+                if resultado is None:
+                    print(f"Erro: chave não encontrada")
+                else:
+                    _, _, byte_off = resultado
+                    registro = ler_registro(gf, byte_off)
+                    n_bytes = len(registro.encode()) + 1
+                    print(f"{registro} ({n_bytes} bytes - offset {byte_off})")
+
+            elif op == 'i':
+                chave = parse_id(arg)
+                print(f"Inserção do registro de chave {chave}")
+                if buscar(bf, raiz, chave) is not None:
+                    print(f"Erro: chave {chave} duplicada")
+                    continue
+                gf.seek(0, os.SEEK_END)
+                byte_off = gf.tell()
+                gf.write((arg + '\n').encode())
+                raiz = gerenciadorDeInsercao(bf, raiz, [(chave, byte_off)])
+                n_bytes = len(arg.encode()) + 1
+                print(f"{arg} ({n_bytes} bytes - offset {byte_off})")
+
+        escrever_raiz(bf, raiz)
+        
+    print(f"\n As operações do arquivo {nome_arquivo} foram executadas com sucesso.")
+                
+
+
+
 
 
 
