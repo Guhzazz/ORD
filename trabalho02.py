@@ -197,9 +197,9 @@ def insereNaPagina(chave: int, filhoD, pag: Pagina)-> None:
 
     i = pag.numChaves
 
-    while i > 0 and chave < pag.chaves[i - 1]:
+    while i > 0 and chave[0] < pag.chaves[i - 1][0]:
         pag.chaves[i] = pag.chaves[i - 1]
-        pag.filhos[i + 1] = pag.fihos[i]
+        pag.filhos[i + 1] = pag.filhos[i]
         i -= 1
     
     pag.chaves[i] = chave
@@ -207,31 +207,38 @@ def insereNaPagina(chave: int, filhoD, pag: Pagina)-> None:
 
     pag.numChaves += 1
 
-# melhorar essa função, lógica está ruim
-# acho que da pra fazer duas funções, copia metade da direita e copia metade da esquerda
-def divide(arq: io.TextIOWrapper, chave: int, filhoD, pag: Pagina)-> tuple:
+
+def divide(arq: io.BufferedRandom, chave: tuple, filhoD: int, pag: Pagina)-> tuple:
     '''Divide uma página cheia em duas após inserir a nova chave nela'''
     insereNaPagina(chave, filhoD, pag)
 
     meio = ORDEM // 2
     chavePro = pag.chaves[meio]
 
-    # filhoDpro = RRN que pNova terá no arquivo
+    # RRN que a nova página terá no disco
     arq.seek(0, os.SEEK_END)
     filhoDPro = (arq.tell() - HEADER_SIZE) // Pagina.tamanho_pagina()
 
-    #pAtual = conteudo de pag até o meio
-    pAtual = Pagina()
+  
+    pAtual = Pagina() 
     pAtual.numChaves = meio
-    pAtual.chaves = pag.chaves[:meio] + [None] * (ORDEM - 1 - meio)
-    pAtual.filhos = pag.filhos[:meio + 1] + [None] * (ORDEM - meio - 1)
+    
+    # Copia os dados da metade esquerda
+    for i in range(meio):
+        pAtual.chaves[i] = pag.chaves[i]
+        pAtual.filhos[i] = pag.filhos[i]
+    pAtual.filhos[meio] = pag.filhos[meio] 
 
-    # pNove = conteudo de pag a partir de meio + 1
-    tam_dir =  ORDEM - 1 - meio
-    pNova = Pagina()
+   
+    pNova = Pagina() 
+    tam_dir = pag.numChaves - (meio + 1)
     pNova.numChaves = tam_dir
-    pNova.chaves = pag.chaves[meio + 1: meio + 1 + tam_dir] + [None] * (ORDEM - 1 - tam_dir)
-    pNova.filhos = pag.filhos[meio + 1: meio + 1 + tam_dir] + [None] * (ORDEM - tam_dir - 1)
+    
+    # Copia os dados da metade direita
+    for i in range(tam_dir):
+        pNova.chaves[i] = pag.chaves[meio + 1 + i]
+        pNova.filhos[i] = pag.filhos[meio + 1 + i]
+    pNova.filhos[tam_dir] = pag.filhos[pag.numChaves] 
 
     return chavePro, filhoDPro, pAtual, pNova
 
@@ -239,6 +246,14 @@ def divide(arq: io.TextIOWrapper, chave: int, filhoD, pag: Pagina)-> tuple:
 def gerenciadorDeInsercao(arq: io.TextIOWrapper, raiz: int, entradas: list)-> int:
     '''Gerencia a inserção de uma lista de chaves na árvore B'''
     for chave in entradas:
+        if raiz == FILHO_NULO:
+            pNova = Pagina()
+            pNova.chaves[0] = chave
+            pNova.numChaves = 1
+
+            raiz = aloca_pag(arq, pNova)
+            continue
+
         chavePro, filhoDpro, promocao = insereNaArvore(arq, raiz, chave)
 
         if promocao:
@@ -283,7 +298,7 @@ def insereNaArvore(arq: io.TextIOWrapper, rrn: int, chave: tuple)-> tuple:
     
     else:
         # pag cheia, divide e propaga promoção
-        chavePro, filhoDpro, pAtual, pNova = divide(arq, chavePro, filhoDpro, pag, rrn)
+        chavePro, filhoDpro, pAtual, pNova = divide(arq, chavePro, filhoDpro, pag)
         escrever_pag(arq, rrn, pAtual)
         aloca_pag(arq, pNova)
         return chavePro, filhoDpro, True
@@ -306,7 +321,11 @@ def executar_operacoes(nome_arquivo: str)-> None:
         print(f"Erro: arquivo de operações '{nome_arquivo}' não encontrado.")
         return 
 
-    
+    if not os.path.exists(BTREE_FILE):
+        # Cria e ja grava -1 no cabeçalho
+        with open(BTREE_FILE, 'wb') as bf:
+            bf.write(struct.pack(HEADER_FORMAT, FILHO_NULO))
+
     with open(nome_arquivo, 'r') as arq:
         linhas = []
         for i in arq:
@@ -347,14 +366,9 @@ def executar_operacoes(nome_arquivo: str)-> None:
                 print(f"{arg} ({n_bytes} bytes - offset {byte_off})")
 
         escrever_raiz(bf, raiz)
-        
+
     print(f"\n As operações do arquivo {nome_arquivo} foram executadas com sucesso.")
                 
-
-
-
-
-
 
 
 def main()-> None:
