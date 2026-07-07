@@ -83,7 +83,7 @@ def reverte_pag(dados: bytes) -> "Pagina":
     return p
 
 
-def aloca_pag(arq: io.BufferedRandom, pag: Pagina) -> int:
+def aloca_pag(arq: io.TextIOWrapper, pag: Pagina) -> int:
     """Grava uma nova página no final do arquivo btree.dat e retorna o rrn alocado"""
 
     arq.seek(0, os.SEEK_END)
@@ -93,21 +93,21 @@ def aloca_pag(arq: io.BufferedRandom, pag: Pagina) -> int:
     return rrn
 
 
-def ler_raiz(arq: io.BufferedRandom) -> int:
+def ler_raiz(arq: io.TextIOWrapper) -> int:
     """Lê o RRN da raiz armazenado no cabeçalho do arquivo"""
 
     arq.seek(os.SEEK_SET)
     return struct.unpack(HEADER_FORMAT, arq.read(4))[0]
 
 
-def escrever_raiz(arq: io.BufferedRandom, rrn: int) -> None:
+def escrever_raiz(arq: io.TextIOWrapper, rrn: int) -> None:
     """Grava o RRN da raiz no cabeçalho do arquivo"""
 
     arq.seek(os.SEEK_SET)
     arq.write(struct.pack(HEADER_FORMAT, rrn))
 
 
-def ler_registro(arq_games: io.BufferedRandom, offset: int) -> str:
+def ler_registro(arq_games: io.TextIOWrapper, offset: int) -> str:
     """Lê e retorna o registro localizado em **ofsset** dentro de games.dat"""
     arq_games.seek(offset)
 
@@ -143,7 +143,7 @@ def buscaNaPagina(chave: int, pag: Pagina) -> tuple[bool, int]:
         return False, pos
 
 
-def buscaNaArvore(arq: io.BufferedRandom, chave: int, rrn) -> tuple:
+def buscaNaArvore(arq: io.TextIOWrapper, chave: int, rrn) -> tuple:
     """Busca recursiva na árvore a partir de um RRN"""
     if rrn is None:
         # Parada da recursão
@@ -159,7 +159,7 @@ def buscaNaArvore(arq: io.BufferedRandom, chave: int, rrn) -> tuple:
             return buscaNaArvore(arq, chave, pag.filhos[pos])
 
 
-def buscar(arq: io.BufferedRandom, rrn_raiz: int, chave: int) -> tuple:
+def buscar(arq: io.TextIOWrapper, rrn_raiz: int, chave: int) -> tuple | None:
     """Ponto de entrada da busca na árvore B"""
     achou, rrn, pos = buscaNaArvore(arq, chave, rrn_raiz)
 
@@ -174,7 +174,7 @@ def buscar(arq: io.BufferedRandom, rrn_raiz: int, chave: int) -> tuple:
 # Auxiliares da inserção na árvore
 
 
-def ler_pag(arq: io.BufferedRandom, rrn: int) -> Pagina:
+def ler_pag(arq: io.TextIOWrapper, rrn: int) -> Pagina:
     """Lê uma página do arquivo da árvore B"""
 
     byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
@@ -182,14 +182,14 @@ def ler_pag(arq: io.BufferedRandom, rrn: int) -> Pagina:
     return reverte_pag(arq.read(Pagina.tamanho_pagina()))
 
 
-def escrever_pag(arq: io.BufferedRandom, rrn: int, pag: Pagina) -> None:
+def escrever_pag(arq: io.TextIOWrapper, rrn: int, pag: Pagina) -> None:
     """Grava uma página no arquivo btree.dat"""
     byte_offset = HEADER_SIZE + rrn * Pagina.tamanho_pagina()
     arq.seek(byte_offset)
     arq.write(pag.converte_pag())
 
 
-def insereNaPagina(chave: int, filhoD, pag: Pagina) -> None:
+def insereNaPagina(chave: tuple, filhoD, pag: Pagina) -> None:
     """Insere uma chave e seu filho direito em uma página em memória,
     deslocando as entradas maiores para abrir posição e mantendo ordem crescente
     """
@@ -244,7 +244,7 @@ def divide(arq: io.BufferedRandom, chave: tuple, filhoD: int, pag: Pagina) -> tu
     return chavePro, filhoDPro, pAtual, pNova
 
 
-def gerenciadorDeInsercao(arq: io.BufferedRandom, raiz: int, entradas: list) -> int:
+def gerenciadorDeInsercao(arq: io.TextIOWrapper, raiz: int, entradas: list) -> int:
     """Gerencia a inserção de uma lista de chaves na árvore B"""
     for chave in entradas:
         if raiz == FILHO_NULO:
@@ -271,7 +271,7 @@ def gerenciadorDeInsercao(arq: io.BufferedRandom, raiz: int, entradas: list) -> 
 # Inserção na árvore
 
 
-def insereNaArvore(arq: io.BufferedRandom, rrn: int, chave: tuple) -> tuple:
+def insereNaArvore(arq: io.TextIOWrapper, rrn: int, chave: tuple) -> tuple:
     """Inserção recursiva na árvore com promoção de chave"""
 
     if rrn is None or rrn == FILHO_NULO:
@@ -440,29 +440,29 @@ def imprimir_arvore() -> None:
                 print("- - - - - - - - - - - - Raiz - - - - - - - - - - - -")
                 print()
 
-        chaves = ""
-        offsets = ""
-            
-        for i in range(len(pag.chaves)):
-            if pag.chaves[i] is not None:
-                chaves += str(pag.chaves[i][0])
-                offsets += str(pag.chaves[i][1])
-            else:
-                chaves += "-1"
-                offsets += "-1"
-            
-            if i < len(pag.chaves) - 1:
-                chaves += " | "
-                offsets += " | "
+            chaves = ""
+            offsets = ""
+
+            for i in range(len(pag.chaves)):
+                if pag.chaves[i] is not None:
+                    chaves += str(pag.chaves[i][0])
+                    offsets += str(pag.chaves[i][1])
+                else:
+                    chaves += "-1"
+                    offsets += "-1"
+
+                if i < len(pag.chaves) - 1:
+                    chaves += " | "
+                    offsets += " | "
 
             filhos = ""
-            
+
             for i in range(len(pag.filhos)):
                 if pag.filhos[i] is not None:
                     filhos += str(pag.filhos[i])
                 else:
                     filhos += "-1"
-                    
+
                 if i < len(pag.filhos) - 1:
                     filhos += " | "
 
