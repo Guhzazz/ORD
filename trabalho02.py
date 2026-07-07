@@ -440,13 +440,31 @@ def imprimir_arvore() -> None:
                 print("- - - - - - - - - - - - Raiz - - - - - - - - - - - -")
                 print()
 
-            chaves = " | ".join(
-                str(c[0]) if c is not None else "-1" for c in pag.chaves
-            )
-            offsets = " | ".join(
-                str(c[1]) if c is not None else "-1" for c in pag.chaves
-            )
-            filhos = " | ".join(str(f) if f is not None else "-1" for f in pag.filhos)
+        chaves = ""
+        offsets = ""
+            
+        for i in range(len(pag.chaves)):
+            if pag.chaves[i] is not None:
+                chaves += str(pag.chaves[i][0])
+                offsets += str(pag.chaves[i][1])
+            else:
+                chaves += "-1"
+                offsets += "-1"
+            
+            if i < len(pag.chaves) - 1:
+                chaves += " | "
+                offsets += " | "
+
+            filhos = ""
+            
+            for i in range(len(pag.filhos)):
+                if pag.filhos[i] is not None:
+                    filhos += str(pag.filhos[i])
+                else:
+                    filhos += "-1"
+                    
+                if i < len(pag.filhos) - 1:
+                    filhos += " | "
 
             print(f"Página {rrn}:")
             print(f"Chaves = {chaves}")
